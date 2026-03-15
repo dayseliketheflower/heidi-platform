@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heidi Platform - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            color: #1f2937;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e06651;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #6b7280;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #1f2937;
+        }
+
+        .btn-primary {
+            background: #e06651;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: #cc4a37;
+        }
+
+        .btn-outline {
+            border: 2px solid #e06651;
+            color: #e06651;
+            background: transparent;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-outline:hover {
+            background: #fdf4f3;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(to bottom, #fdf4f3, white);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #6b7280;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .disclaimer {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 3rem;
+            color: #1f2937;
+        }
+
+        .feature-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+
+        .feature-card p {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        /* Safety Section */
+        .safety {
+            padding: 5rem 2rem;
+            background: #f9fafb;
+        }
+
+        .safety-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .safety-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .safety-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .steps-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-number {
+            width: 4rem;
+            height: 4rem;
+            background: #e06651;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step p {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        /* CTA Section */
+        .cta {
+            background: #e06651;
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-white {
+            background: white;
+            color: #e06651;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-white:hover {
+            background: #f9fafb;
+        }
+
+        .btn-white-outline {
+            border: 2px solid white;
+            color: white;
+            background: transparent;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-white-outline:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Footer */
+        footer {
+            background: #1f2937;
+            color: #9ca3af;
+            padding: 3rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 2rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid #374151;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .close-btn:hover {
+            color: #1f2937;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e06651;
+            box-shadow: 0 0 0 3px rgba(224, 102, 81, 0.1);
+        }
+
+        .demo-notice {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 500;
+            color: #92400e;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">
+                ❤️ Heidi
+            </div>
+            <div class="nav-links">
+                <a href="#how-it-works">How It Works</a>
+                <a href="#safety">Safety</a>
+                <button class="btn-primary" onclick="openModal('login')">Log In</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Safe, Nonsexual Emotional Support When You Need It</h1>
+        <p>Connect with vetted providers for compassionate companionship during medical appointments, difficult moments, or whenever you need a supportive human presence.</p>
+        <div class="hero-buttons">
+            <button class="btn-primary" onclick="openModal('signup')">Get Started</button>
+            <button class="btn-outline" onclick="openModal('provider')">Become a Provider</button>
+        </div>
+        <p class="disclaimer">
+            <strong>This is not therapy, dating, or sexual services.</strong> 
+            Heidi provides peer-style emotional support and companionship only.
+        </p>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <h2 class="section-title">How Heidi Can Help</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏥</div>
+                <h3>Medical Appointments</h3>
+                <p>A trusted companion to support you through dental or medical visits</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💙</div>
+                <h3>Emotional Support</h3>
+                <p>Compassionate presence during grief, anxiety, or challenging moments</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">☕</div>
+                <h3>Public Companionship</h3>
+                <p>Meet in a safe public space for conversation and connection</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚶‍♀️</div>
+                <h3>Activity Companion</h3>
+                <p>Accompaniment during walks, errands, or events</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Safety Section -->
+    <section class="safety" id="safety">
+        <div class="safety-content">
+            <div class="safety-icon">🛡️</div>
+            <h2 class="section-title">Safety & Trust Are Our Foundation</h2>
+            <p style="font-size: 1.125rem; color: #6b7280; margin-bottom: 2rem;">
+                Every provider is carefully vetted with background checks and identity verification. 
+                All sessions have clear boundaries and consent agreements.
+            </p>
+            <div class="safety-grid">
+                <div class="feature-card">
+                    <h3>Background Checks</h3>
+                    <p>All providers undergo identity verification and criminal background screening</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Clear Boundaries</h3>
+                    <p>Sessions include consent forms and boundary agreements before every meeting</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Reporting Tools</h3>
+                    <p>In-app safety reporting and dedicated Trust & Safety team review</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <h2 class="section-title">How It Works</h2>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Create Your Profile</h3>
+                <p>Sign up and complete identity verification. Choose a membership plan ($29.99/month).</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Find Your Match</h3>
+                <p>Search vetted providers by location, availability, and type of support you need.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Book & Connect</h3>
+                <p>Set boundaries, book a session, and receive compassionate support on your terms.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <h2>You Don't Have to Face Difficult Moments Alone</h2>
+        <p>Join Heidi to connect with compassionate support when you need it most.</p>
+        <div class="cta-buttons">
+            <button class="btn-white" onclick="openModal('signup')">Get Started Today</button>
+            <button class="btn-white-outline" onclick="alert('This is a demo. In the full version, you would see detailed safety information.')">Learn About Safety</button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="logo" style="color: #e06651; margin-bottom: 1rem;">❤️ Heidi</div>
+                <p style="font-size: 0.875rem;">Safe, nonsexual emotional support and companionship for womxn and the LGBTQIA community.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Platform</h4>
+                <ul>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#safety">Safety & Trust</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Pricing</a></li>
+                    <li><a href="#" onclick="openModal('provider')">Become a Provider</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#" onclick="alert('Demo only')">Code of Conduct</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Nonsexual Policy</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Privacy Policy</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#" onclick="alert('Demo only')">Help Center</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Contact Us</a></li>
+                    <li><a href="#" onclick="alert('Demo only')">Report a Concern</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Heidi Platform. All rights reserved.</p>
+            <p style="margin-top: 0.5rem;">
+                <strong>Not therapy. Not dating. Not sexual services.</strong> Heidi provides peer-style emotional support only.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Signup Modal -->
+    <div class="modal" id="signup-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Get Started</h2>
+                <button class="close-btn" onclick="closeModal('signup')">&times;</button>
+            </div>
+            <div class="demo-notice">
+                ⚠️ This is a DEMO - no data is actually saved
+            </div>
+            <form onsubmit="handleSignup(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="Minimum 8 characters" required>
+                </div>
+                <div class="form-group">
+                    <label>I want to:</label>
+                    <select required>
+                        <option value="">Select...</option>
+                        <option value="client">Find emotional support (Client)</option>
+                        <option value="provider">Provide support (Provider)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Create Account</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem; color: #6b7280; font-size: 0.875rem;">
+                Already have an account? <a href="#" onclick="closeModal('signup'); openModal('login')" style="color: #e06651;">Log in</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <button class="close-btn" onclick="closeModal('login')">&times;</button>
+            </div>
+            <div class="demo-notice">
+                ⚠️ This is a DEMO - try any email/password
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="Your password" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Log In</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem; color: #6b7280; font-size: 0.875rem;">
+                Don't have an account? <a href="#" onclick="closeModal('login'); openModal('signup')" style="color: #e06651;">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Provider Modal -->
+    <div class="modal" id="provider-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Become a Provider</h2>
+                <button class="close-btn" onclick="closeModal('provider')">&times;</button>
+            </div>
+            <div class="demo-notice">
+                ⚠️ This is a DEMO - no data is actually saved
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.5rem;">Requirements:</h3>
+                <ul style="margin-left: 1.5rem; color: #6b7280; line-height: 1.8;">
+                    <li>21+ years old</li>
+                    <li>Pass background check</li>
+                    <li>Complete identity verification</li>
+                    <li>Commit to nonsexual support only</li>
+                    <li>Attend safety training</li>
+                </ul>
+            </div>
+            <form onsubmit="handleProviderSignup(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" placeholder="Your full name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" placeholder="(555) 123-4567" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" placeholder="City, State" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(modalName) {
+            document.getElementById(modalName + '-modal').classList.add('active');
+        }
+
+        function closeModal(modalName) {
+            document.getElementById(modalName + '-modal').classList.remove('active');
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            alert('🎉 Demo Success!\n\nIn the real application, you would:\n\n✓ Create your account\n✓ Complete identity verification\n✓ Choose a membership plan ($29.99/month)\n✓ Start searching for providers\n\nThis is just a visual demo - no real data is saved.');
+            closeModal('signup');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            alert('✅ Demo Login Successful!\n\nIn the real application, you would be logged in and see:\n\n• Your dashboard\n• Search for providers\n• Your bookings\n• Messages\n• Account settings\n\nThis is just a visual demo.');
+            closeModal('login');
+        }
+
+        function handleProviderSignup(e) {
+            e.preventDefault();
+            alert('📋 Application Submitted!\n\nIn the real application:\n\n✓ Your application is sent to our team\n✓ Background check initiated\n✓ Identity verification started\n✓ You\'ll receive updates via email\n✓ Approval typically takes 3-5 business days\n\nThis is just a visual demo.');
+            closeModal('provider');
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

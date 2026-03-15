@@ -1,0 +1,367 @@
+// Prisma schema for Heidi platform
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  PROVIDER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+enum VerificationStatus {
+  PENDING
+  IN_PROGRESS
+  VERIFIED
+  REJECTED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING_PAYMENT
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_PROVIDER
+}
+
+enum LocationType {
+  PUBLIC_SPACE
+  PROVIDER_LOCATION
+  CLIENT_LOCATION
+  VIRTUAL
+}
+
+enum PhysicalContactLevel {
+  NONE
+  HAND_HOLDING
+  SIDE_HUG
+  FULL_HUG
+  CUDDLING
+}
+
+enum ReportStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  role      UserRole
+  status    UserStatus @default(PENDING_VERIFICATION)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  clientProfile   ClientProfile?
+  providerProfile ProviderProfile?
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  givenReviews    Review[] @relation("GivenReviews")
+  receivedReviews Review[] @relation("ReceivedReviews")
+
+  submittedReports SafetyReport[] @relation("SubmittedReports")
+  reportsAgainst   SafetyReport[] @relation("ReportsAgainst")
+
+  auditLogs AuditLog[] @relation("AuditActor")
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+model ClientProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName          String
+  lastName           String
+  phoneNumber        String?
+  location           String
+  preferences        Json? // Flexible preferences object
+  verificationStatus VerificationStatus @default(PENDING)
+  kycDocumentUrl     String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  membership Membership?
+  bookings   Booking[]   @relation("ClientBookings")
+
+  @@index([userId])
+  @@index([verificationStatus])
+}
+
+model ProviderProfile {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName             String
+  lastName              String
+  phoneNumber           String
+  location              String
+  bio                   String
+  servicesOffered       String[] // Array of service type names
+  baseHourlyRate        Int // In cents
+  maxTravelDistance     Int? // In kilometers
+  languages             String[]
+  identityTags          String[] // e.g., ["male", "gay-friendly", "lgbtqia-ally"]
+  verificationStatus    VerificationStatus @default(PENDING)
+  backgroundCheckStatus VerificationStatus @default(PENDING)
+  kycDocumentUrl        String?
+  profilePhotoUrl       String?
+  isApproved            Boolean            @default(false)
+  approvedAt            DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  bookings       Booking[]              @relation("ProviderBookings")
+  availability   ProviderAvailability[]
+  totalEarnings  Int                    @default(0) // In cents
+  totalSessions  Int                    @default(0)
+  averageRating  Float?
+  totalReviews   Int                    @default(0)
+
+  @@index([userId])
+  @@index([isApproved])
+  @@index([location])
+  @@index([verificationStatus])
+}
+
+model ProviderAvailability {
+  id         String   @id @default(cuid())
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int // 0 = Sunday, 6 = Saturday
+  startTime  String // HH:mm format
+  endTime    String // HH:mm format
+  createdAt  DateTime @default(now())
+
+  @@index([providerId])
+}
+
+model MembershipPlan {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  billingPeriod BillingPeriod
+  price         Int // In cents
+  description   String
+  perks         Json? // Flexible perks object
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  memberships Membership[]
+
+  @@index([isActive])
+}
+
+model Membership {
+  id              String           @id @default(cuid())
+  clientProfileId String           @unique
+  clientProfile   ClientProfile    @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            MembershipPlan   @relation(fields: [planId], references: [id])
+  status          MembershipStatus @default(PENDING_PAYMENT)
+  startDate       DateTime
+  endDate         DateTime
+  lastPaymentDate DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([clientProfileId])
+  @@index([planId])
+  @@index([status])
+}
+
+model ServiceType {
+  id                     String    @id @default(cuid())
+  name                   String    @unique
+  description            String
+  defaultDurationMinutes Int[]
+  isActive               Boolean   @default(true)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  bookings Booking[]
+
+  @@index([isActive])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  clientId       String
+  client         ClientProfile @relation("ClientBookings", fields: [clientId], references: [id])
+  providerId     String
+  provider       ProviderProfile @relation("ProviderBookings", fields: [providerId], references: [id])
+  serviceTypeId  String
+  serviceType    ServiceType   @relation(fields: [serviceTypeId], references: [id])
+  startTime      DateTime
+  endTime        DateTime
+  durationMinutes Int
+  locationType   LocationType
+  locationDetails String?
+  priceTotal     Int // In cents - what client pays
+  platformFee    Int // In cents - platform's cut
+  providerPayout Int // In cents - what provider receives
+  status         BookingStatus @default(REQUESTED)
+  requestMessage String?
+  rejectionReason String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  boundarySummary BoundarySummary?
+  messages        Message[]
+  reviews         Review[]
+  safetyReports   SafetyReport[]
+
+  @@index([clientId])
+  @@index([providerId])
+  @@index([serviceTypeId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model BoundarySummary {
+  id                    String               @id @default(cuid())
+  bookingId             String               @unique
+  booking               Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  allowedPhysicalContact PhysicalContactLevel @default(NONE)
+  topicsToAvoid         String[]
+  preferredTone         String?
+  clientNeeds           String?
+  additionalNotes       String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([bookingId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User     @relation("GivenReviews", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("ReceivedReviews", fields: [revieweeId], references: [id])
+  rating     Int // 1-5
+  text       String?
+  isVisible  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@index([createdAt])
+}
+
+model SafetyReport {
+  id              String       @id @default(cuid())
+  reporterId      String
+  reporter        User         @relation("SubmittedReports", fields: [reporterId], references: [id])
+  reportedUserId  String
+  reportedUser    User         @relation("ReportsAgainst", fields: [reportedUserId], references: [id])
+  bookingId       String?
+  booking         Booking?     @relation(fields: [bookingId], references: [id])
+  description     String
+  status          ReportStatus @default(SUBMITTED)
+  reviewedBy      String?
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  actionType String // e.g., "USER_SUSPENDED", "PROVIDER_APPROVED", "BOOKING_CANCELLED"
+  targetType String // e.g., "User", "Booking", "SafetyReport"
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([actionType])
+  @@index([targetType])
+  @@index([targetId])
+  @@index([createdAt])
+}
+
+model PolicyDocument {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  content     String // Markdown content
+  version     String
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([publishedAt])
+}
+
+model PlatformConfig {
+  id                  String   @id @default(cuid())
+  key                 String   @unique
+  value               String // JSON-encoded value
+  description         String?
+  updatedAt           DateTime @updatedAt
+
+  @@index([key])
+}
