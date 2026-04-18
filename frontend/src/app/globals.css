@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #5C2D5C;
+  --color-primary-dark: #3D1A3D;
+  --color-bg: #FBF7F2;
+  --color-surface: #ffffff;
+  --color-text: #2A1F2A;
+  --color-text-muted: #6B5A6B;
+  --color-border: #E8DDD0;
+  --color-success: #10b981;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;

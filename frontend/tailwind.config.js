@@ -7,7 +7,21 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        playfair: ['var(--font-playfair)', 'Georgia', 'serif'],
+        'dm-sans': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+      },
       colors: {
+        heidi: {
+          primary: '#5C2D5C',
+          'primary-dark': '#3D1A3D',
+          bg: '#FBF7F2',
+          surface: '#ffffff',
+          text: '#2A1F2A',
+          'text-muted': '#6B5A6B',
+          border: '#E8DDD0',
+          success: '#10b981',
+        },
         primary: {
           50: '#fdf4f3',
           100: '#fce9e6',
