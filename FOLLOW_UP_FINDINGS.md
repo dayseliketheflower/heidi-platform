@@ -1,8 +1,14 @@
 # Follow-up findings — schema audit, 2026-07-04
 
-Found during migration reconciliation (see `MIGRATION_HISTORY.md`). The two critical RLS holes (panic_alerts, boundary_agreements) are already fixed and baselined. Everything below is intentionally untouched pending your review.
+Found during migration reconciliation (see `MIGRATION_HISTORY.md`). The two critical RLS holes (panic_alerts, boundary_agreements) are already fixed and baselined. Everything below is intentionally untouched pending your review, except where marked RESOLVED.
 
-## 1. Dead admin-role policies (profiles vs. users)
+## 0. panic_alerts admin check caused infinite recursion — RESOLVED 2026-07-04
+
+The first fix to `"Admin can read all panic alerts"` (checking `EXISTS (SELECT 1 FROM public.users WHERE ... role='admin')` inline) was itself broken: `public.users` has RLS enabled with a self-referencing policy (`"Admins can read all users"`, see #1 below), so any query against `public.users` under RLS — including this one, running inside another table's policy — recurses and Postgres throws `42P17: infinite recursion detected in policy for relation "users"`. This made `panic_alerts` return a hard error for every authenticated query, not just a clean empty result. Confirmed live on production before fixing (read-only test, no data touched).
+
+**Fix:** added `public.is_admin()`, a `SECURITY DEFINER` function that checks `role = 'admin'` on `public.users` as the function owner (who owns that table and so bypasses its RLS), avoiding the recursion. `panic_alerts`' policy now reads `USING (public.is_admin())`. Verified on staging with both directions: a user promoted to `role='admin'` can read the seeded panic_alerts row (count=1), a non-admin gets a clean empty result (count=0, no error). Verified on production that non-admins now get a clean empty result instead of an error. `supabase db diff --linked --schema public,auth` confirmed clean after rebaselining.
+
+## 1. Dead / broken admin-role policies (profiles vs. users)
 
 Five RLS policies gate admin access via `EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')`:
 
@@ -15,9 +21,9 @@ Five RLS policies gate admin access via `EXISTS (SELECT 1 FROM profiles WHERE pr
 
 But `profiles.role` has `CHECK (role = ANY (ARRAY['client','provider']))` — it is not possible for any row to ever have `role = 'admin'`. These six policies can never match for anyone, meaning today there is no working admin-read path through RLS for incidents, boundary_agreements, provider_applications, bookings, sessions, or admin_log — whatever admin tooling exists must be going through `service_role` directly, bypassing RLS entirely.
 
-By contrast, `"Admins can read all users"` (on `users`) checks `users.role = 'admin'`, and `users.role`'s CHECK constraint does allow `'admin'` — this is the one policy of this shape that actually works. The panic_alerts fix in this pass was pointed at `users.role` for that reason.
+By contrast, `"Admins can read all users"` (on `users`) checks `users.role = 'admin'`, and `users.role`'s CHECK constraint does allow `'admin'` — so in principle this is the one policy of this shape that should work. In practice it **does not**: this policy is self-referencing (it queries `public.users` from within a policy on `public.users`), which triggers the exact same Postgres recursion error described in #0 above. Confirmed with a direct isolated test: any authenticated query against `public.users` currently throws `42P17: infinite recursion detected in policy for relation "users"` rather than returning rows — so today, **nobody** (admin or not) can read `public.users` through the API at all, not just non-admins being denied. Not fixed here per your instruction — same `public.is_admin()` function from #0 would fix it (`USING (public.is_admin())` instead of the inline self-referencing subquery), but that's a decision for you to make together with the broader profiles-vs-users question below.
 
-**Decision needed:** either (a) allow `'admin'` in `profiles.role`'s CHECK constraint and make sure profiles rows for admins get that value set, or (b) repoint these six policies at `users.role = 'admin'` like the panic_alerts fix. Not done here since it touches either a constraint change or six policies at once — wanted your sign-off first.
+**Decision needed:** either (a) allow `'admin'` in `profiles.role`'s CHECK constraint and make sure profiles rows for admins get that value set, or (b) repoint these six policies (plus fix `"Admins can read all users"` itself) at `is_admin()`/`users.role = 'admin'`. Not done here since it touches either a constraint change or seven policies at once — wanted your sign-off first.
 
 ## 2. Duplicate / legacy-looking tables
 

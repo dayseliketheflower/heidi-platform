@@ -1,12 +1,23 @@
 -- Baseline migration: reconciled snapshot of the live production public schema as of 2026-07-04.
--- Captured via 'supabase db dump --linked --schema public' after fixing two live RLS holes
--- (panic_alerts admin check, boundary_agreements permissive duplicate policies) and
--- moving notify_*_confirmation trigger functions off hardcoded prod URL/anon key onto
--- Supabase Vault secrets (edge_functions_base_url, edge_functions_anon_key).
+-- Captured via 'supabase db dump --linked --schema public' after fixing three live issues:
+-- 1. panic_alerts admin check had no role restriction (anyone could read all alerts).
+-- 2. boundary_agreements had permissive duplicate policies bypassing the scoped ones.
+-- 3. notify_*_confirmation triggers had prod URL/anon key hardcoded -- moved to Vault
+--    secrets (edge_functions_base_url, edge_functions_anon_key).
+--
 -- Also adds on_auth_user_created, a trigger on auth.users -> handle_new_user() that
 -- exists in production but was missed by the original --schema public dump (it lives
 -- on a table in the auth schema, not public). Without it, no environment seeded from
 -- this baseline alone would auto-populate public.users on signup.
+--
+-- Also adds public.is_admin(), a SECURITY DEFINER helper. The first version of the
+-- panic_alerts fix (inline 'SELECT 1 FROM public.users WHERE role=admin') caused
+-- Postgres to detect infinite recursion (42P17) because public.users has its own
+-- self-referencing RLS policy ('Admins can read all users'). is_admin() runs as the
+-- table owner, bypassing that table's RLS, avoiding the recursion. NOTE:
+-- 'Admins can read all users' itself is STILL broken by this same recursion and is
+-- not yet fixed -- see FOLLOW_UP_FINDINGS.md.
+--
 -- See MIGRATION_HISTORY.md for what was found and the rule going forward.
 
 
@@ -50,8 +61,17 @@ $$;
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$ SELECT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin') $$;
+
+
+ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";
+
+
 -- Lives on auth.users, not public — omitted by a `--schema public` dump but required
--- for signups to populate public.users at all. See header note above.
+-- for signups to populate public.users at all.
 DROP TRIGGER IF EXISTS "on_auth_user_created" ON "auth"."users";
 CREATE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_user"();
 
@@ -742,9 +762,7 @@ CREATE POLICY "Admin can read all bookings" ON "public"."bookings" FOR SELECT US
 
 
 
-CREATE POLICY "Admin can read all panic alerts" ON "public"."panic_alerts" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."users"
-  WHERE (("users"."id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
+CREATE POLICY "Admin can read all panic alerts" ON "public"."panic_alerts" FOR SELECT USING ("public"."is_admin"());
 
 
 
@@ -1012,6 +1030,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "service_role";
 
 
 
