@@ -28,13 +28,29 @@ By contrast, `"Admins can read all users"` (on `users`) checks `users.role = 'ad
 
 **Decision needed:** confirm which of these are intentionally legacy/dead vs. still load-bearing before any cleanup.
 
-## 3. Hardcoded anon key in trigger functions
+## 3. Hardcoded anon key in trigger functions — RESOLVED 2026-07-04
 
-`notify_companion_confirmation()` and `notify_waitlist_confirmation()` (SECURITY DEFINER functions, fired on INSERT into `provider_applications`/`client_signups`) have the Supabase anon key hardcoded as a literal `Authorization: Bearer ...` string in the function body, calling `https://dzowogyemuauogzwylfv.supabase.co/functions/v1/send-*-confirmation` directly — the production project's URL, hardcoded.
+`notify_companion_confirmation()` and `notify_waitlist_confirmation()` (SECURITY DEFINER functions, fired on INSERT into `provider_applications`/`client_signups`) had the Supabase anon key hardcoded as a literal `Authorization: Bearer ...` string in the function body, calling `https://dzowogyemuauogzwylfv.supabase.co/functions/v1/send-*-confirmation` directly.
 
-Low risk on its own (anon keys are meant to be public), but two things worth flagging:
-- It's now permanently in the git history of `00000000000000_baseline.sql` once that file is committed.
-- **This is a blocker for a clean staging environment** (Task 2): if the baseline is applied verbatim to a new `heidi-staging` Supabase project, these triggers will still call the *production* edge functions with the *production* anon key on every staging signup — staging inserts would trigger real production-side confirmation emails/webhooks, not staging-isolated ones. This needs to be parameterized (e.g. read the project URL/key from `current_setting()` or Vault) before staging can safely apply this baseline.
+**Fix applied:** `ALTER DATABASE ... SET` is not permitted on hosted Supabase (managed-cluster restriction — confirmed by trying it), so this was implemented with **Supabase Vault** instead of `current_setting()`. Both functions now look up the target URL/key at call time:
+
+```sql
+SELECT decrypted_secret INTO v_url FROM vault.decrypted_secrets WHERE name = 'edge_functions_base_url';
+SELECT decrypted_secret INTO v_anon_key FROM vault.decrypted_secrets WHERE name = 'edge_functions_anon_key';
+```
+
+and no-op (skip the webhook call, still `RETURN NEW` so the triggering insert succeeds) if either secret is unset — this was a deliberate choice: failing the signup/application insert because a webhook secret is missing would be worse than just skipping the confirmation call.
+
+**Config keys any environment running this baseline must set**, via `select vault.create_secret(value, name, description)`:
+
+| Vault secret name | Value on production | Purpose |
+|---|---|---|
+| `edge_functions_base_url` | `https://dzowogyemuauogzwylfv.supabase.co` | Base URL the triggers call for confirmation emails |
+| `edge_functions_anon_key` | (production anon key) | Bearer token for those calls |
+
+Production already has both secrets set (values unchanged from before — behavior on prod is identical to pre-fix, just no longer hardcoded in the schema file). Verified via before/after `pg_get_functiondef` diff and a live vault lookup returning the expected values, and `supabase db diff --linked` still reports zero drift with the updated baseline.
+
+**Still required for Task 2:** `heidi-staging` needs its own two vault secrets pointing at staging's own project URL/anon key before seeding it — otherwise the triggers will simply no-op there (safe, but confirmation-email flows won't fire in staging smoke tests until this is set).
 
 ## 4. Harmless duplicate policies (no security impact, just redundant)
 

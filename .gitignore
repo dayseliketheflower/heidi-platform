@@ -1,2 +1,6 @@
 GitHub Desktop.app/
 *.zip
+
+# Credential files — never commit
+rootkey.csv
+heidi-490716-*.json

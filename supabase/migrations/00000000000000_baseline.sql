@@ -1,6 +1,8 @@
 -- Baseline migration: reconciled snapshot of the live production public schema as of 2026-07-04.
 -- Captured via 'supabase db dump --linked --schema public' after fixing two live RLS holes
--- (panic_alerts admin check, boundary_agreements permissive duplicate policies).
+-- (panic_alerts admin check, boundary_agreements permissive duplicate policies) and
+-- moving notify_*_confirmation trigger functions off hardcoded prod URL/anon key onto
+-- Supabase Vault secrets (edge_functions_base_url, edge_functions_anon_key).
 -- See MIGRATION_HISTORY.md for what was found and the rule going forward.
 
 
@@ -48,15 +50,23 @@ CREATE OR REPLACE FUNCTION "public"."notify_companion_confirmation"() RETURNS "t
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'net'
     AS $$
+DECLARE
+  v_url text;
+  v_anon_key text;
 BEGIN
-  PERFORM net.http_post(
-    url     := 'https://dzowogyemuauogzwylfv.supabase.co/functions/v1/send-companion-confirmation',
-    headers := jsonb_build_object(
-      'Content-Type',  'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6b3dvZ3llbXVhdW9nend5bGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1Njk3MTUsImV4cCI6MjA5MDE0NTcxNX0.79E8pYmWBsFZu2EfIxhHnVH727UsFbgtnTUmIdB6-lM'
-    ),
-    body    := to_jsonb(NEW)
-  );
+  SELECT decrypted_secret INTO v_url FROM vault.decrypted_secrets WHERE name = 'edge_functions_base_url';
+  SELECT decrypted_secret INTO v_anon_key FROM vault.decrypted_secrets WHERE name = 'edge_functions_anon_key';
+
+  IF v_url IS NOT NULL AND v_anon_key IS NOT NULL THEN
+    PERFORM net.http_post(
+      url     := v_url || '/functions/v1/send-companion-confirmation',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer ' || v_anon_key
+      ),
+      body    := to_jsonb(NEW)
+    );
+  END IF;
   RETURN NEW;
 END;
 $$;
@@ -69,15 +79,23 @@ CREATE OR REPLACE FUNCTION "public"."notify_waitlist_confirmation"() RETURNS "tr
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'net'
     AS $$
+DECLARE
+  v_url text;
+  v_anon_key text;
 BEGIN
-  PERFORM net.http_post(
-    url     := 'https://dzowogyemuauogzwylfv.supabase.co/functions/v1/send-waitlist-confirmation',
-    headers := jsonb_build_object(
-      'Content-Type',  'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6b3dvZ3llbXVhdW9nend5bGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1Njk3MTUsImV4cCI6MjA5MDE0NTcxNX0.79E8pYmWBsFZu2EfIxhHnVH727UsFbgtnTUmIdB6-lM'
-    ),
-    body    := to_jsonb(NEW)
-  );
+  SELECT decrypted_secret INTO v_url FROM vault.decrypted_secrets WHERE name = 'edge_functions_base_url';
+  SELECT decrypted_secret INTO v_anon_key FROM vault.decrypted_secrets WHERE name = 'edge_functions_anon_key';
+
+  IF v_url IS NOT NULL AND v_anon_key IS NOT NULL THEN
+    PERFORM net.http_post(
+      url     := v_url || '/functions/v1/send-waitlist-confirmation',
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer ' || v_anon_key
+      ),
+      body    := to_jsonb(NEW)
+    );
+  END IF;
   RETURN NEW;
 END;
 $$;
