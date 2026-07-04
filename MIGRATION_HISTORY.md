@@ -39,6 +39,12 @@ supabase db push --linked
 
 If a change is ever made directly against production outside this flow, treat the migration history as compromised again and re-run this reconciliation process before trusting `supabase db diff`.
 
+## Addendum, 2026-07-04: `db diff --schema public` had a blind spot
+
+While setting up the `heidi-staging` project from this baseline, new signups didn't populate `public.users`. Cause: production has `on_auth_user_created AFTER INSERT ON auth.users EXECUTE FUNCTION handle_new_user()`, but the original baseline dump used `--schema public`, which doesn't include triggers on tables that live in the `auth` schema — so this trigger, which the whole signup flow depends on, was silently missing from "the single source of truth." The earlier "zero drift" verification was only ever checking the `public` schema and could not have caught this.
+
+Fixed: added the trigger to `00000000000000_baseline.sql` explicitly (it already existed on production unchanged, so nothing was pushed to production). Re-verified with `supabase db diff --linked --schema public,auth` → **"No schema changes found."** Use `--schema public,auth` (not just `public`) for any future full verification against production.
+
 ## Known issues NOT fixed (see follow-up findings doc)
 
 Several other schema issues were identified but intentionally left untouched pending review — see `FOLLOW_UP_FINDINGS.md`. Most notably: five other "Admin can ..." policies check `profiles.role = 'admin'`, but `profiles.role`'s CHECK constraint only allows `('client','provider')` — meaning those five policies can never match any row and are effectively dead code today.

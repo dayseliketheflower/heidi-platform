@@ -3,6 +3,10 @@
 -- (panic_alerts admin check, boundary_agreements permissive duplicate policies) and
 -- moving notify_*_confirmation trigger functions off hardcoded prod URL/anon key onto
 -- Supabase Vault secrets (edge_functions_base_url, edge_functions_anon_key).
+-- Also adds on_auth_user_created, a trigger on auth.users -> handle_new_user() that
+-- exists in production but was missed by the original --schema public dump (it lives
+-- on a table in the auth schema, not public). Without it, no environment seeded from
+-- this baseline alone would auto-populate public.users on signup.
 -- See MIGRATION_HISTORY.md for what was found and the rule going forward.
 
 
@@ -44,6 +48,12 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
+
+
+-- Lives on auth.users, not public — omitted by a `--schema public` dump but required
+-- for signups to populate public.users at all. See header note above.
+DROP TRIGGER IF EXISTS "on_auth_user_created" ON "auth"."users";
+CREATE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_user"();
 
 
 CREATE OR REPLACE FUNCTION "public"."notify_companion_confirmation"() RETURNS "trigger"
